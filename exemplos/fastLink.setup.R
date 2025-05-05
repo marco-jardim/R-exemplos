@@ -1,0 +1,5 @@
+install.packages("tidyverse")
+install.packages("janitor")
+install.packages("fastLink")
+install.packages("utf8")
+install.packages("scales")
