@@ -15,6 +15,8 @@ library(tibble)     # para as_tibble, tribble etc.
 library(scales)       # para labels em %
 library(utf8)      # para utf8::as_utf8 (não é necessário, mas é bom usar)
 
+print("Fim do carregamento de pacotes\n")
+
 ## 1. LER E ARRUMAR DADOS ------------------------------------------------------
 # -> read_csv() já converte datas automaticamente se formato ISO "YYYY-MM-DD"
 
@@ -32,6 +34,8 @@ base_b <- read_csv("./bases/cadastro_2021.csv",
   mutate(across(where(is.character), str_squish)) |>
   mutate(ano = 2021)
 
+print("Fim do carregamento de dados\n")
+
 ## 2. SELECIONAR VARIÁVEIS PARA LINKAGE ----------------------------------------
 campos_link <- c("primeiro_nome", "sobrenome", "data_nasc", "sexo")
 
@@ -40,6 +44,8 @@ df_a <- base_a |>
 
 df_b <- base_b |>
   select(id_2021 = id, all_of(campos_link))
+
+print("Fim da seleção de variáveis para linkage\n")
 
 ## 3. RODAR fastLink -----------------------------------------------------------
 #  - stringdist.match: só para campos que precisam de distância (aqui nomes)
@@ -58,6 +64,8 @@ link_out <- fastLink(
 
 # Depois de rodar fastLink (link_out) …
 info <- summary(link_out)   # imprime e devolve lista invisível
+
+print("Fim do linkage\n")
 
 ############################################################################
 # 3a. Função auxiliar para FDR/FNR esperados
@@ -79,8 +87,11 @@ err <- calc_fdr_fnr(link_out$posterior, p_star)
 fdr <- err["FDR"];
 fnr <- err["FNR"]
 
-cat(sprintf("\n==== Qualidade do linkage ====\nFDR (False Discovery Rate): %.4f\nFNR (False Negative Rate): %.4f\n\n",
-            fdr, fnr))
+cat(base::sprintf(
+  "\n==== Qualidade do linkage ====\nFDR (False Discovery Rate): %.4f\nFNR (False Negative Rate): %.4f\n\n",
+  fdr, fnr))
+
+print("Fim do cálculo de FDR/FNR\n")
 
 ## 4. EXTRAIR TABELA DE MATCHES + PROBABILIDADE -------------------------------
 # Veja args(getMatches); na versão CRAN  v0.6.0  3º arg = fl.out
@@ -102,6 +113,8 @@ matches <- matches_tbl |>
     prob    = posterior          
   )
 
+print("Fim da extração de matches\n")
+
 ## 5. JUNTAR MATCHES AOS DADOS ORIGINAIS --------------------------------------
 dados_ligados <- matches |>
   # Junta registros 2020
@@ -109,6 +122,8 @@ dados_ligados <- matches |>
   # Junta registros 2021
   left_join(base_b |> rename(id_2021 = id), by = "id_2021",
             suffix = c("_20", "_21"))
+
+print("Fim da junção de dados\n")
 
 ## 6. ANÁLISE COM PESOS ξ (prob) ----------------------------------------------
 resumo <- dados_ligados |>
@@ -118,6 +133,8 @@ resumo <- dados_ligados |>
   )
 
 print(resumo)
+
+print("Fim do resumo ponderado\n")
 
 ###############################################################################
 # FIM. O OBJETO 'dados_ligados' contém as duas linhas originais já unidas

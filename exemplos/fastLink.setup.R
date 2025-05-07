@@ -1,3 +1,4 @@
+install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
 install.packages("tidyverse")
 install.packages("janitor")
 install.packages("fastLink")
