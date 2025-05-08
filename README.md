@@ -143,3 +143,82 @@ saveRDS(link_out, "bases/link_out.rds")
 3. **Propague a incerteza** — use `prob` como peso em regressões (`glm(..., weights = prob)`).
 4. **Compare com método determinístico** — faça `inner_join()` por nome + data\_nasc e compare FDR/FNR.
 
+---
+
+## 9. Exemplo: Crawler de dados do SIDRA (Pesquisa Mensal de Comércio)
+
+Este exemplo demonstra como **raspar dados** (scraping) diretamente do site do IBGE/SIDRA referente à **Pesquisa Mensal de Comércio (PMC)**. O script localiza as tabelas em HTML, converte para data frames (ou *tibbles*) e aplica correções de nomes/encoding.
+
+### 9.1. Estrutura e Objetivo do Script
+
+O arquivo `sidra_scraper.R` contém um conjunto de etapas para realizar a captura de tabelas e a correção de possíveis problemas de *encoding*. Essas tabelas são exibidas na página do SIDRA em formato HTML e se encontram na seção da **Pesquisa Mensal de Comércio**.
+
+1. **Leitura da página**  
+   O script utiliza a função `read_html()` do pacote **rvest** para carregar o conteúdo HTML. O URL apontado (`https://sidra.ibge.gov.br/ajax/home/pmc/1/brasil`) retorna uma versão em HTML contendo as tabelas que vemos no *dashboard* da PMC.
+
+2. **Seleção de Tabelas**  
+   Em seguida, localizamos todas as tags `<table>` que possuam as classes `"quadro tabela-sidra"`. No código, isso se dá pelo seletor CSS:
+   ```r
+   tabelas_html <- pagina %>% html_nodes("table.quadro.tabela-sidra")
+   ```
+
+Cada *table* corresponde a um bloco de dados exibido na página.
+
+3. **Conversão para Data Frames/Tibbles**
+   Para cada tabela coletada, o script chama `html_table(fill = TRUE, dec = ",")`. Isso retorna uma lista de data frames. Frequentemente, cada tabela só contém um data frame, então usamos `pluck(1)` para extrair.
+   Após isso, aplicamos o `janitor::clean_names()` para garantir que nomes de colunas sejam padronizados (sem espaços, caracteres especiais, etc.).
+
+4. **Correção de Encoding**
+   Frequentemente, páginas em português podem apresentar caracteres acentuados corrompidos. Para corrigir, o script define a função `fix_double_encoding()`. Esta função faz uma “conversão dupla” via `iconv()`, resolvendo casos de sobreposição de encoding (“ComÃ©rcio” → “Comércio”).
+   Em seguida, através de `mutate(across(where(is.character), fix_double_encoding))`, garantimos que todos os campos de texto sejam tratados.
+
+5. **Armazenamento e Impressão**
+   As tabelas resultantes são armazenadas em uma `lista_tabelas`, cada qual convertida em um tibble. Por fim, o script imprime cada tabela no console.
+   Se quiser salvar em disco, basta adaptar o código para `write_csv(lista_tabelas[[i]], "nome_arquivo.csv")` ou algo equivalente.
+
+### 9.2. Localização do Script
+
+No diretório `./exemplos/`, encontramos:
+
+```
+exemplos/
+├── fastLink.R
+├── fastLink.setup.R
+└── sidra_scraper.R   # Script principal de scraping do SIDRA
+```
+
+### 9.3. Dependências
+
+| Pacote      | Função                           |
+| ----------- | -------------------------------- |
+| **rvest**   | Leitura de páginas HTML          |
+| **dplyr**   | Manipulação de dados (tidyverse) |
+| **purrr**   | Iterações funcionais (`map()`)   |
+| **janitor** | Limpeza de nomes de colunas      |
+| **stringr** | Manipulações de strings          |
+
+### 9.4. Como Executar
+
+1. **Instalar pacotes** (caso ainda não estejam disponíveis):
+
+   ```r
+   install.packages(c("rvest", "dplyr", "purrr", "janitor", "stringr"))
+   ```
+
+2. **Executar** o script:
+
+   ```r
+   source("exemplos/sidra_scraper.R", encoding = "UTF-8")
+   ```
+
+   Você verá o conteúdo de cada tabela aparecendo no console sob o nome `Tabela_1`, `Tabela_2`, etc.
+
+### 9.5. Observações e Personalizações
+
+* **Mudança de URL**: Se o IBGE alterar o endpoint do SIDRA ou a estrutura HTML, você deverá atualizar a variável `url` ou o seletor de classes (`"table.quadro.tabela-sidra"`).
+* **Salvar em Arquivos**: Para persistir os dados, você pode substituir o `print()` no final por `write_csv()`, salvando cada tibble em um `.csv`.
+* **Uso de Encoding**: Caso apareçam caracteres quebrados ou “�”, teste alternar `from="latin1"` e `to="UTF-8"` ou vice-versa dentro do `iconv()`.
+* **Automatização**: Pode-se agendar o script para rodar periodicamente (usando CRON no Linux, ou Tarefas Agendadas no Windows), automatizando a coleta de dados.
+
+---
+
