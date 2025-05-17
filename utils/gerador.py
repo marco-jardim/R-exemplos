@@ -94,6 +94,7 @@ overlaps["renda"] = overlaps["renda"] * np.random.uniform(0.9, 1.1, size=overlap
 df2021 = pd.concat([df2021, overlaps], ignore_index=True)
 
 # Save to CSV
+os.makedirs("./bases", exist_ok=True)
 path20 = "./bases/cadastro_2020.csv"
 path21 = "./bases/cadastro_2021.csv"
 df2020.to_csv(path20, index=False)
